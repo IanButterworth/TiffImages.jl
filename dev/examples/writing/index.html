@@ -7,38 +7,38 @@ data = rand(RGB{N0f8}, 10, 10)</code></pre><img src="data:image/png;base64,iVBOR
 img = TiffImages.DenseTaggedImage(data)</code></pre><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAMAAABHPGVmAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAABL1BMVEUjsvTot3WtA8eJfYQ5w+JI8e5b/x12z/xP4weGbmF/A/LDXxxIbP6urhtlFyNB19q3TS7T11pKlbRNT1X+A4GDLmoUAYlvELPj7G2KJ51c4JJ/8rQ9sEfSd/zAJnbZ0my6o4e7Oxlm8k3D1ZYmWPknTOgcL1++ihEhpuQ2lOxIwP/Nb+vRgiitNazC7JVuddoos4noe50OC6AwRM/AfPhNQKO+4JvFc5O74QuarNlmDd69br60rygoFSqTQot70GQQcbex75n1p6qlGEBp4VRlxvtyJ4/RJ+Wl4gyWig3jeHvzucGLDhT7N2SjXZ7bRl94QDICD45gnp8rR/mnptXIWifuGWqvzSAqgQXOWlQBksJ0UsxAwpyP7DNyLFG1t9137buaOs8XzHMX5Gv///8561PDAAAAAWJLR0Rkwtq4CQAAANpJREFUaN7tzcNhAFEUAMCNbdu2bdt20n8PuU0N//Cmgckycsglj3wKKKSIYkrIIokkkkSSUsoop4JKqqimhlrqiCSSSFJJ6mmgkSaaaaGVNtrpIJJIIkkl6aSLbnropY9+BhhkiEgiiSSVZJgRRhljnAkmmWKaGSKJJJJUklnmmGeBRZZYZoVV1ogkkkhSSdbZYJMtttlhlz32OSCSSCJJJTnkiGNOOOWMcy645IpIIokkleSaG265454HHnnimRciiSSSVJJX3njng0+++OaHX/6IJJJIEkn+ASf+jgL6/7sGAAAAAElFTkSuQmCC" /><p>Wait nothing happened! Hang with me, lets take a closer look at our new object using the <code>dump</code> command. We can see that there&#39;s now new information associated with our data! TiffImages.jl usually represents TIFF images as simply the data and associated tags that describe the data</p><pre><code class="language-julia">dump(img; maxdepth=1)</code></pre><pre class="documenter-example-output">TiffImages.DenseTaggedImage{RGB{Normed{UInt8,8}},2,UInt32,Array{RGB{Normed{UInt8,8}},2}}
   data: Array{RGB{Normed{UInt8,8}}}((10, 10))
   ifds: Array{TiffImages.IFD{UInt32}}((1,))</pre><p>The tags are organized as a vector of what are called <a href="https://www.awaresystems.be/imaging/tiff/faq.html">Image File Directories</a> (IFDs). For a simple 2D image like what we have, the IFDs will be stored a vector of length=1. For 3D images, the length of the IFDs vector will equal the length of the image in the third dimension.</p><p>Lets take a look at what tags there are:</p><pre><code class="language-julia">ifd = first(img.ifds) # since our data is 2D
-ifd</code></pre><pre class="documenter-example-output">IFD, with tags: (* indicates remote data)
-	Tag(IMAGEWIDTH, UInt32, 1, 10)
-	Tag(IMAGELENGTH, UInt32, 1, 10)
-	Tag(BITSPERSAMPLE, UInt16, 3, [8, 8, 8])
-	Tag(PHOTOMETRIC, UInt16, 1, 2)
-	Tag(SAMPLESPERPIXEL, UInt16, 1, 3)
-	Tag(SAMPLEFORMAT, UInt16, 3, [1, 1, 1])</pre><h2 id="Manipulating-TIFF-Tags"><a class="docs-heading-anchor" href="#Manipulating-TIFF-Tags">Manipulating TIFF Tags</a><a id="Manipulating-TIFF-Tags-1"></a><a class="docs-heading-anchor-permalink" href="#Manipulating-TIFF-Tags" title="Permalink"></a></h2><p>These are some of the most basic tags that are required by the TIFF spec. We can even update it to add our own custom tags</p><pre><code class="language-julia">ifd[TiffImages.IMAGEDESCRIPTION] = &quot;This is very important data&quot;
-ifd</code></pre><pre class="documenter-example-output">IFD, with tags: (* indicates remote data)
-	Tag(IMAGEWIDTH, UInt32, 1, 10)
-	Tag(IMAGELENGTH, UInt32, 1, 10)
-	Tag(BITSPERSAMPLE, UInt16, 3, [8, 8, 8])
-	Tag(PHOTOMETRIC, UInt16, 1, 2)
-	Tag(IMAGEDESCRIPTION, String, 28, &quot;This is very importa&quot;)
-	Tag(SAMPLESPERPIXEL, UInt16, 1, 3)
-	Tag(SAMPLEFORMAT, UInt16, 3, [1, 1, 1])</pre><p>We can even add tags that aren&#39;t in the standard set in <a href="../../lib/extend/tags/#TiffImages.TiffTag"><code>TiffImages.TiffTag</code></a> as long as they are a <code>UInt16</code></p><pre><code class="language-julia">ifd[UInt16(34735)] = UInt16[1, 2, 3]
-ifd</code></pre><pre class="documenter-example-output">IFD, with tags: (* indicates remote data)
-	Tag(IMAGEWIDTH, UInt32, 1, 10)
-	Tag(IMAGELENGTH, UInt32, 1, 10)
-	Tag(BITSPERSAMPLE, UInt16, 3, [8, 8, 8])
-	Tag(PHOTOMETRIC, UInt16, 1, 2)
-	Tag(IMAGEDESCRIPTION, String, 28, &quot;This is very importa&quot;)
-	Tag(SAMPLESPERPIXEL, UInt16, 1, 3)
-	Tag(SAMPLEFORMAT, UInt16, 3, [1, 1, 1])
-	Tag(UNKNOWN(34735), UInt16, 3, [1, 2, 3])</pre><p>We can also delete tags if we decide we don&#39;t want them:</p><pre><code class="language-julia">delete!(ifd, TiffImages.IMAGEDESCRIPTION)
-ifd</code></pre><pre class="documenter-example-output">IFD, with tags: (* indicates remote data)
-	Tag(IMAGEWIDTH, UInt32, 1, 10)
-	Tag(IMAGELENGTH, UInt32, 1, 10)
-	Tag(BITSPERSAMPLE, UInt16, 3, [8, 8, 8])
-	Tag(PHOTOMETRIC, UInt16, 1, 2)
-	Tag(SAMPLESPERPIXEL, UInt16, 1, 3)
-	Tag(SAMPLEFORMAT, UInt16, 3, [1, 1, 1])
-	Tag(UNKNOWN(34735), UInt16, 3, [1, 2, 3])</pre><div class="admonition is-warning"><header class="admonition-header">Warning</header><div class="admonition-body"><p>Careful with <code>delete!</code>, if any of core tags are deleted, TiffImages.jl and other readers might fail to read the file</p></div></div><h2 id="Saving-to-disk"><a class="docs-heading-anchor" href="#Saving-to-disk">Saving to disk</a><a id="Saving-to-disk-1"></a><a class="docs-heading-anchor-permalink" href="#Saving-to-disk" title="Permalink"></a></h2><p>Once you&#39;re happy with your TIFF object, you can write it to disk as follows:</p><pre><code class="language-julia">open(&quot;test.tif&quot;, &quot;w&quot;) do io
+ifd</code></pre><pre class="documenter-example-output">IFD, with tags: 
+	Tag(IMAGEWIDTH, 10)
+	Tag(IMAGELENGTH, 10)
+	Tag(BITSPERSAMPLE, UInt16[8, 8, 8])
+	Tag(PHOTOMETRIC, 2)
+	Tag(SAMPLESPERPIXEL, 3)
+	Tag(SAMPLEFORMAT, UInt16[1, 1, 1])</pre><h2 id="Manipulating-TIFF-Tags"><a class="docs-heading-anchor" href="#Manipulating-TIFF-Tags">Manipulating TIFF Tags</a><a id="Manipulating-TIFF-Tags-1"></a><a class="docs-heading-anchor-permalink" href="#Manipulating-TIFF-Tags" title="Permalink"></a></h2><p>These are some of the most basic tags that are required by the TIFF spec. We can even update it to add our own custom tags</p><pre><code class="language-julia">ifd[TiffImages.IMAGEDESCRIPTION] = &quot;This is very important data&quot;
+ifd</code></pre><pre class="documenter-example-output">IFD, with tags: 
+	Tag(IMAGEWIDTH, 10)
+	Tag(IMAGELENGTH, 10)
+	Tag(BITSPERSAMPLE, UInt16[8, 8, 8])
+	Tag(PHOTOMETRIC, 2)
+	Tag(IMAGEDESCRIPTION, &quot;This is very importa...&quot;)
+	Tag(SAMPLESPERPIXEL, 3)
+	Tag(SAMPLEFORMAT, UInt16[1, 1, 1])</pre><p>We can even add tags that aren&#39;t in the standard set in <a href="../../lib/extend/tags/#TiffImages.TiffTag"><code>TiffImages.TiffTag</code></a> as long as they are a <code>UInt16</code></p><pre><code class="language-julia">ifd[UInt16(34735)] = UInt16[1, 2, 3]
+ifd</code></pre><pre class="documenter-example-output">IFD, with tags: 
+	Tag(IMAGEWIDTH, 10)
+	Tag(IMAGELENGTH, 10)
+	Tag(BITSPERSAMPLE, UInt16[8, 8, 8])
+	Tag(PHOTOMETRIC, 2)
+	Tag(IMAGEDESCRIPTION, &quot;This is very importa...&quot;)
+	Tag(SAMPLESPERPIXEL, 3)
+	Tag(SAMPLEFORMAT, UInt16[1, 1, 1])
+	Tag(UNKNOWN(34735), UInt16[1, 2, 3])</pre><p>We can also delete tags if we decide we don&#39;t want them:</p><pre><code class="language-julia">delete!(ifd, TiffImages.IMAGEDESCRIPTION)
+ifd</code></pre><pre class="documenter-example-output">IFD, with tags: 
+	Tag(IMAGEWIDTH, 10)
+	Tag(IMAGELENGTH, 10)
+	Tag(BITSPERSAMPLE, UInt16[8, 8, 8])
+	Tag(PHOTOMETRIC, 2)
+	Tag(SAMPLESPERPIXEL, 3)
+	Tag(SAMPLEFORMAT, UInt16[1, 1, 1])
+	Tag(UNKNOWN(34735), UInt16[1, 2, 3])</pre><div class="admonition is-warning"><header class="admonition-header">Warning</header><div class="admonition-body"><p>Careful with <code>delete!</code>, if any of core tags are deleted, TiffImages.jl and other readers might fail to read the file</p></div></div><h2 id="Saving-to-disk"><a class="docs-heading-anchor" href="#Saving-to-disk">Saving to disk</a><a id="Saving-to-disk-1"></a><a class="docs-heading-anchor-permalink" href="#Saving-to-disk" title="Permalink"></a></h2><p>Once you&#39;re happy with your TIFF object, you can write it to disk as follows:</p><pre><code class="language-julia">open(&quot;test.tif&quot;, &quot;w&quot;) do io
     write(io, img)
 end</code></pre><p>And to just double check, we can load it right back in</p><pre><code class="language-julia">TiffImages.load(&quot;test.tif&quot;)</code></pre><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAMAAABHPGVmAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAABL1BMVEUjsvTot3WtA8eJfYQ5w+JI8e5b/x12z/xP4weGbmF/A/LDXxxIbP6urhtlFyNB19q3TS7T11pKlbRNT1X+A4GDLmoUAYlvELPj7G2KJ51c4JJ/8rQ9sEfSd/zAJnbZ0my6o4e7Oxlm8k3D1ZYmWPknTOgcL1++ihEhpuQ2lOxIwP/Nb+vRgiitNazC7JVuddoos4noe50OC6AwRM/AfPhNQKO+4JvFc5O74QuarNlmDd69br60rygoFSqTQot70GQQcbex75n1p6qlGEBp4VRlxvtyJ4/RJ+Wl4gyWig3jeHvzucGLDhT7N2SjXZ7bRl94QDICD45gnp8rR/mnptXIWifuGWqvzSAqgQXOWlQBksJ0UsxAwpyP7DNyLFG1t9137buaOs8XzHMX5Gv///8561PDAAAAAWJLR0Rkwtq4CQAAANpJREFUaN7tzcNhAFEUAMCNbdu2bdt20n8PuU0N//Cmgckycsglj3wKKKSIYkrIIokkkkSSUsoop4JKqqimhlrqiCSSSFJJ6mmgkSaaaaGVNtrpIJJIIkkl6aSLbnropY9+BhhkiEgiiSSVZJgRRhljnAkmmWKaGSKJJJJUklnmmGeBRZZYZoVV1ogkkkhSSdbZYJMtttlhlz32OSCSSCJJJTnkiGNOOOWMcy645IpIIokkleSaG265454HHnnimRciiSSSVJJX3njng0+++OaHX/6IJJJIEkn+ASf+jgL6/7sGAAAAAElFTkSuQmCC" /><h2 id="Strategies-for-saving-common-types"><a class="docs-heading-anchor" href="#Strategies-for-saving-common-types">Strategies for saving common types</a><a id="Strategies-for-saving-common-types-1"></a><a class="docs-heading-anchor-permalink" href="#Strategies-for-saving-common-types" title="Permalink"></a></h2><p>The general strategy for saving arrays will differ a bit depending on the type. The key step is the convert or reinterpret the arrays so that the elements are subtypes of <code>Colors.Colorant</code></p><h4 id="Unsigned-Integers"><a class="docs-heading-anchor" href="#Unsigned-Integers">Unsigned Integers</a><a id="Unsigned-Integers-1"></a><a class="docs-heading-anchor-permalink" href="#Unsigned-Integers" title="Permalink"></a></h4><p>Say you want to save a 3D array of small integers as grayscale values.</p><pre><code class="language-julia">data2 = rand(UInt8.(1:255), 5, 10)
 eltype(data2)</code></pre><pre class="documenter-example-output">UInt8</pre><p>You can&#39;t directly save the <code>data2</code> since TiffImages.jl needs some color information to properly save the file. You can use <a href="https://docs.julialang.org/en/v1/base/arrays/#Base.reinterpret"><code>reinterpret</code></a> to accomplish this:</p><pre><code class="language-julia">grays = reinterpret(Gray{N0f8}, data2)
@@ -50,10 +50,10 @@ img3 = TiffImages.DenseTaggedImage(colors)</code></pre><img src="data:image/png;
  -63  83    35   60  -59
    8  33   -38  -72    4
   77  64    79  -13   75</pre><pre><code class="language-julia">img4 = TiffImages.DenseTaggedImage(reinterpret(Gray{Q0f63}, data))
-println(img4.ifds[1])</code></pre><pre class="documenter-example-output">IFD, with tags: (* indicates remote data)
-	Tag(IMAGEWIDTH, UInt32, 1, 5)
-	Tag(IMAGELENGTH, UInt32, 1, 5)
-	Tag(BITSPERSAMPLE, UInt16, 1, 64)
-	Tag(PHOTOMETRIC, UInt16, 1, 1)
-	Tag(SAMPLESPERPIXEL, UInt16, 1, 1)
-	Tag(SAMPLEFORMAT, UInt16, 1, 2)</pre><p>As you can see the <code>SAMPLEFORMATS</code> and <code>BITSPERSAMPLE</code> tags correctly updated to show that this TIFF contains signed integers and 64-bit data, respectively.</p><div class="admonition is-warning"><header class="admonition-header">Warning</header><div class="admonition-body"><p>Currently, several of the display libraries struggle with showing <code>Colorant</code>s backed by a signed type so you might run into errors, but the data will still save properly</p></div></div><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../reading/">« Reading TIFFs</a><a class="docs-footer-nextpage" href="../../lib/public/">Public »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Monday 11 January 2021 20:00">Monday 11 January 2021</span>. Using Julia version 1.5.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+println(img4.ifds[1])</code></pre><pre class="documenter-example-output">IFD, with tags:
+	Tag(IMAGEWIDTH, 5)
+	Tag(IMAGELENGTH, 5)
+	Tag(BITSPERSAMPLE, 64)
+	Tag(PHOTOMETRIC, 1)
+	Tag(SAMPLESPERPIXEL, 1)
+	Tag(SAMPLEFORMAT, 2)</pre><p>As you can see the <code>SAMPLEFORMATS</code> and <code>BITSPERSAMPLE</code> tags correctly updated to show that this TIFF contains signed integers and 64-bit data, respectively.</p><div class="admonition is-warning"><header class="admonition-header">Warning</header><div class="admonition-body"><p>Currently, several of the display libraries struggle with showing <code>Colorant</code>s backed by a signed type so you might run into errors, but the data will still save properly</p></div></div><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../reading/">« Reading TIFFs</a><a class="docs-footer-nextpage" href="../../lib/public/">Public »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Wednesday 13 January 2021 01:06">Wednesday 13 January 2021</span>. Using Julia version 1.5.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
